@@ -441,6 +441,46 @@ export default function App() {
 
         </div>
 
+        {/* IMAGE GALLERY */}
+
+        <div className="mb-10">
+
+          <h2 className="text-2xl font-bold mb-6">Fitness Inspiration</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow">
+
+              <img src="/image1.jpg" alt="Fitness Inspiration 1" className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300" />
+
+              <div className="p-4">
+
+                <h3 className="font-bold text-lg">Get Fit</h3>
+
+                <p className="text-gray-600 text-sm">Stay motivated and reach your fitness goals</p>
+
+              </div>
+
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow">
+
+              <img src="/image2.jpg" alt="Fitness Inspiration 2" className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300" />
+
+              <div className="p-4">
+
+                <h3 className="font-bold text-lg">Stay Healthy</h3>
+
+                <p className="text-gray-600 text-sm">Track your progress and celebrate your wins</p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
         {/* MAIN SECTION */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
