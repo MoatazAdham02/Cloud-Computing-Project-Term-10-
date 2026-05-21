@@ -7,25 +7,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database Pool
+// ================= DATABASE CONNECTION =================
+
 const pool = mysql.createPool({
     host: "fitness-db.cd9ny2wbkgd9.us-east-1.rds.amazonaws.com",
     user: "admin",
     password: "moataz2026",
+    database: "fitness_db",
     port: 3306,
     waitForConnections: true,
     connectionLimit: 10,
 });
 
-// Initialize Database
+// ================= INITIALIZE DATABASE =================
+
 async function initDB() {
     try {
-        await pool.query("CREATE DATABASE IF NOT EXISTS fitness_db");
-        await pool.query("USE fitness_db");
 
         console.log("✅ Connected to fitness_db");
 
-        // Create Tables with safe types
+        // USERS TABLE
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,6 +37,7 @@ async function initDB() {
             )
         `);
 
+        // WORKOUTS TABLE
         await pool.query(`
             CREATE TABLE IF NOT EXISTS workouts (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,6 +49,7 @@ async function initDB() {
             )
         `);
 
+        // WATER TABLE
         await pool.query(`
             CREATE TABLE IF NOT EXISTS water_intake (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,6 +60,7 @@ async function initDB() {
         `);
 
         console.log("✅ All tables are ready");
+
     } catch (e) {
         console.error("❌ DB Init Error:", e.message);
     }
@@ -64,90 +68,271 @@ async function initDB() {
 
 initDB();
 
-// ====================== ROUTES ======================
+// ================= REGISTER =================
+
+app.post("/register", async (req, res) => {
+
+    try {
+
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                error: "All fields are required",
+            });
+        }
+
+        await pool.execute(
+            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+            [name, email, password]
+        );
+
+        res.json({
+            message: "User Registered Successfully",
+        });
+
+    } catch (err) {
+
+        console.error("❌ Register Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= LOGIN =================
+
+app.post("/login", async (req, res) => {
+
+    try {
+
+        const { email, password } = req.body;
+
+        const [rows] = await pool.execute(
+            "SELECT * FROM users WHERE email = ? AND password = ?",
+            [email, password]
+        );
+
+        if (rows.length > 0) {
+
+            res.json({
+                success: true,
+                user: rows[0],
+            });
+
+        } else {
+
+            res.status(401).json({
+                success: false,
+                message: "Invalid Credentials",
+            });
+        }
+
+    } catch (err) {
+
+        console.error("❌ Login Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= GET WORKOUTS =================
+
+app.get("/workouts", async (req, res) => {
+
+    try {
+
+        const [rows] = await pool.execute(
+            "SELECT * FROM workouts ORDER BY id DESC"
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+
+        console.error("❌ Get Workouts Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= ADD WORKOUT =================
 
 app.post("/workouts", async (req, res) => {
+
     try {
+
         console.log("📥 Workout Received:", req.body);
 
         const { workout, duration, calories, date } = req.body;
 
         if (!workout || !duration || !calories || !date) {
-            return res.status(400).json({ error: "Missing fields" });
+            return res.status(400).json({
+                error: "Missing fields",
+            });
         }
 
         const [result] = await pool.execute(
             "INSERT INTO workouts (workout, duration, calories, date) VALUES (?, ?, ?, ?)",
-            [workout, parseInt(duration), parseInt(calories), date]
+            [
+                workout,
+                parseInt(duration),
+                parseInt(calories),
+                date,
+            ]
         );
 
-        console.log("✅ Workout Saved Successfully");
-        res.json({ message: "Workout Added", id: result.insertId });
+        console.log("✅ Workout Added");
+
+        res.json({
+            message: "Workout Added Successfully",
+            id: result.insertId,
+        });
+
     } catch (err) {
-        console.error("❌ Workout Error:", err.message);
-        res.status(500).json({ error: err.message });
+
+        console.error("❌ Add Workout Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
     }
 });
 
-app.post("/water", async (req, res) => {
+// ================= UPDATE WORKOUT =================
+
+app.put("/workouts/:id", async (req, res) => {
+
     try {
+
+        const { id } = req.params;
+
+        const {
+            workout,
+            duration,
+            calories,
+            date,
+        } = req.body;
+
+        await pool.execute(
+            `UPDATE workouts 
+             SET workout = ?, duration = ?, calories = ?, date = ?
+             WHERE id = ?`,
+            [
+                workout,
+                duration,
+                calories,
+                date,
+                id,
+            ]
+        );
+
+        res.json({
+            message: "Workout Updated",
+        });
+
+    } catch (err) {
+
+        console.error("❌ Update Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= DELETE WORKOUT =================
+
+app.delete("/workouts/:id", async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        await pool.execute(
+            "DELETE FROM workouts WHERE id = ?",
+            [id]
+        );
+
+        res.json({
+            message: "Workout Deleted",
+        });
+
+    } catch (err) {
+
+        console.error("❌ Delete Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= ADD WATER =================
+
+app.post("/water", async (req, res) => {
+
+    try {
+
         console.log("📥 Water Received:", req.body);
 
         const { amount } = req.body;
 
         if (!amount) {
-            return res.status(400).json({ error: "Amount is required" });
+            return res.status(400).json({
+                error: "Amount is required",
+            });
         }
 
-        const [result] = await pool.execute(
+        await pool.execute(
             "INSERT INTO water_intake (amount) VALUES (?)",
             [parseInt(amount)]
         );
 
-        console.log("✅ Water Saved Successfully");
-        res.json({ message: "Water Added" });
+        console.log("✅ Water Added");
+
+        res.json({
+            message: "Water Added Successfully",
+        });
+
     } catch (err) {
+
         console.error("❌ Water Error:", err.message);
-        res.status(500).json({ error: err.message });
+
+        res.status(500).json({
+            error: err.message,
+        });
     }
 });
 
-// Other routes (GETs, register, login, etc.)
-app.get("/workouts", async (req, res) => {
-    const [rows] = await pool.execute("SELECT * FROM workouts ORDER BY id DESC");
-    res.json(rows);
-});
+// ================= GET WATER =================
 
 app.get("/water", async (req, res) => {
-    const [result] = await pool.execute("SELECT SUM(amount) AS total FROM water_intake");
-    res.json(result[0] || { total: 0 });
-});
 
-app.post("/register", async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-        await pool.execute(
-            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-            [name, email, password]
+
+        const [result] = await pool.execute(
+            "SELECT SUM(amount) AS total FROM water_intake"
         );
-        res.json({ message: "User Registered" });
+
+        res.json(result[0] || { total: 0 });
+
     } catch (err) {
-        res.status(500).json({ error: err.message });
+
+        console.error("❌ Get Water Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
     }
 });
 
-app.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const [rows] = await pool.execute(
-            "SELECT * FROM users WHERE email = ? AND password = ?", 
-            [email, password]
-        );
-        res.json(rows.length > 0 ? rows[0] : { message: "Invalid" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+// ================= SERVER =================
 
 app.listen(5000, () => {
     console.log("🚀 Server running on port 5000");
