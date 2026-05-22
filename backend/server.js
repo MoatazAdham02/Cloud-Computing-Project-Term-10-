@@ -10,7 +10,7 @@ app.use(express.json());
 // ================= DATABASE CONNECTION =================
 
 const pool = mysql.createPool({
-    host: "database-1.cd9ny2wbkgd9.us-east-1.rds.amazonaws.com",
+    host: "fitness-db.cd9ny2wbkgd9.us-east-1.rds.amazonaws.com",
     user: "admin",
     password: "moataz2026",
     database: "fitness_db",
@@ -43,7 +43,6 @@ async function initDB() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 workout VARCHAR(200),
                 duration INT,
-                calories INT,
                 date DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -169,20 +168,19 @@ app.post("/workouts", async (req, res) => {
 
         console.log("📥 Workout Received:", req.body);
 
-        const { workout, duration, calories, date } = req.body;
+        const { workout, duration, date } = req.body;
 
-        if (!workout || !duration || !calories || !date) {
+        if (!workout || !duration || !date) {
             return res.status(400).json({
                 error: "Missing fields",
             });
         }
 
         const [result] = await pool.execute(
-            "INSERT INTO workouts (workout, duration, calories, date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO workouts (workout, duration, date) VALUES (?, ?, ?)",
             [
                 workout,
                 parseInt(duration),
-                parseInt(calories),
                 date,
             ]
         );
@@ -215,18 +213,16 @@ app.put("/workouts/:id", async (req, res) => {
         const {
             workout,
             duration,
-            calories,
             date,
         } = req.body;
 
         await pool.execute(
             `UPDATE workouts 
-             SET workout = ?, duration = ?, calories = ?, date = ?
+             SET workout = ?, duration = ?, date = ?
              WHERE id = ?`,
             [
                 workout,
                 duration,
-                calories,
                 date,
                 id,
             ]
