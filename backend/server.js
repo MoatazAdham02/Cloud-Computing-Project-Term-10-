@@ -10,7 +10,7 @@ app.use(express.json());
 // ================= DATABASE CONNECTION =================
 
 const pool = mysql.createPool({
-    host: "fitness-db.cd9ny2wbkgd9.us-east-1.rds.amazonaws.com",
+    host: "database-1.cd9ny2wbkgd9.us-east-1.rds.amazonaws.com",
     user: "admin",
     password: "moataz2026",
     database: "fitness_db",
@@ -325,6 +325,89 @@ app.get("/water", async (req, res) => {
     } catch (err) {
 
         console.error("❌ Get Water Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= GET ALL WATER RECORDS =================
+
+app.get("/water/all", async (req, res) => {
+
+    try {
+
+        const [records] = await pool.execute(
+            "SELECT * FROM water_intake ORDER BY date DESC, created_at DESC"
+        );
+
+        res.json(records);
+
+    } catch (err) {
+
+        console.error("❌ Get Water Records Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= UPDATE WATER =================
+
+app.put("/water/:id", async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+        const { amount } = req.body;
+
+        if (!amount) {
+            return res.status(400).json({
+                error: "Amount is required",
+            });
+        }
+
+        await pool.execute(
+            "UPDATE water_intake SET amount = ? WHERE id = ?",
+            [parseInt(amount), id]
+        );
+
+        res.json({
+            message: "Water updated successfully",
+        });
+
+    } catch (err) {
+
+        console.error("❌ Update Water Error:", err.message);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
+// ================= DELETE WATER =================
+
+app.delete("/water/:id", async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        await pool.execute(
+            "DELETE FROM water_intake WHERE id = ?",
+            [id]
+        );
+
+        res.json({
+            message: "Water deleted successfully",
+        });
+
+    } catch (err) {
+
+        console.error("❌ Delete Water Error:", err.message);
 
         res.status(500).json({
             error: err.message,

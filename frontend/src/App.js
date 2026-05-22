@@ -22,22 +22,12 @@ export default function App() {
   const [formData, setFormData] = useState({
     workout: "",
     duration: "",
-    calories: "",
     date: "",
   });
 
   const [waterAmount, setWaterAmount] = useState("");
   const [waterIntake, setWaterIntake] = useState(0);
-
-  // EDIT STATES
-  const [editingId, setEditingId] = useState(null);
-
-  const [editData, setEditData] = useState({
-    workout: "",
-    duration: "",
-    calories: "",
-    date: "",
-  });
+  const [waterList, setWaterList] = useState([]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -61,6 +51,9 @@ export default function App() {
     try {
       const response = await axios.get(`${API}/water`);
       setWaterIntake(response.data.total || 0);
+      
+      const listResponse = await axios.get(`${API}/water/all`);
+      setWaterList(listResponse.data || []);
     } catch (error) {
       console.log(error);
     }
@@ -132,7 +125,6 @@ export default function App() {
       if (
         !formData.workout ||
         !formData.duration ||
-        !formData.calories ||
         !formData.date
       ) {
         toast.error("Please fill all fields");
@@ -149,7 +141,6 @@ export default function App() {
       setFormData({
         workout: "",
         duration: "",
-        calories: "",
         date: "",
       });
 
@@ -186,95 +177,20 @@ export default function App() {
     }
   };
 
-  // EDIT BUTTON
-  const handleEdit = (workout) => {
-
-    setEditingId(workout.id);
-
-    setEditData({
-      workout: workout.workout,
-      duration: workout.duration,
-      calories: workout.calories,
-      date: workout.date,
-    });
-  };
-
-  // UPDATE WORKOUT
-  const handleUpdate = async () => {
-
+  // DELETE WATER
+  const handleDeleteWater = async (id) => {
     try {
-
-      if (
-        !editData.workout ||
-        !editData.duration ||
-        !editData.calories ||
-        !editData.date
-      ) {
-        toast.error("Please fill all fields");
-        return;
-      }
-
-      await axios.put(
-        `${API}/workouts/${editingId}`,
-        editData
-      );
-
-      fetchWorkouts();
-
-      setEditingId(null);
-
-      setEditData({
-        workout: "",
-        duration: "",
-        calories: "",
-        date: "",
-      });
-
-      toast.success("Workout updated successfully");
-
+      await axios.delete(`${API}/water/${id}`);
+      fetchWater();
+      toast.success("Water deleted successfully");
     } catch (error) {
-
       console.log(error);
-
-      toast.error("Failed to update workout");
-    }
-  };
-
-  // DELETE WORKOUT
-  const handleDelete = async (id) => {
-
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this workout?"
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    try {
-
-      await axios.delete(
-        `${API}/workouts/${id}`
-      );
-
-      fetchWorkouts();
-
-      toast.error("Workout deleted successfully");
-
-    } catch (error) {
-
-      console.log(error);
-
-      alert("Failed to delete workout");
+      toast.error("Failed to delete water");
     }
   };
 
   // TOTAL CALORIES
-  const totalCalories = workouts.reduce(
-    (sum, workout) =>
-      sum + Number(workout.calories),
-    0
-  );
+  // Removed - calories tracking no longer needed
 
   // LOGIN PAGE
   if (!isLoggedIn) {
@@ -418,18 +334,6 @@ export default function App() {
           <div className="bg-white p-6 rounded-3xl shadow-lg">
 
             <h2 className="text-gray-500">
-              Calories Burned
-            </h2>
-
-            <p className="text-4xl font-bold mt-4">
-              {totalCalories}
-            </p>
-
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow-lg">
-
-            <h2 className="text-gray-500">
               Water Intake
             </h2>
 
@@ -517,15 +421,6 @@ export default function App() {
               />
 
               <input
-                type="number"
-                name="calories"
-                placeholder="Calories"
-                value={formData.calories}
-                onChange={handleWorkoutChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3"
-              />
-
-              <input
                 type="date"
                 name="date"
                 value={formData.date}
@@ -559,9 +454,7 @@ export default function App() {
 
                     <th className="pb-4">Workout</th>
                     <th className="pb-4">Duration</th>
-                    <th className="pb-4">Calories</th>
                     <th className="pb-4">Date</th>
-                    <th className="pb-4">Actions</th>
 
                   </tr>
 
@@ -585,33 +478,7 @@ export default function App() {
                       </td>
 
                       <td>
-                        {workout.calories}
-                      </td>
-
-                      <td>
                         {workout.date}
-                      </td>
-
-                      <td className="flex gap-2 py-4">
-
-                        <button
-                          onClick={() =>
-                            handleEdit(workout)
-                          }
-                          className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl transition"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            handleDelete(workout.id)
-                          }
-                          className="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded-xl transition"
-                        >
-                          Delete
-                        </button>
-
                       </td>
 
                     </tr>
@@ -628,87 +495,13 @@ export default function App() {
 
         </div>
 
-        {/* EDIT SECTION */}
-
-        {editingId && (
-
-          <div className="mt-10 bg-white rounded-3xl shadow-lg p-6">
-
-            <h2 className="text-2xl font-bold mb-6">
-              Edit Workout
-            </h2>
-
-            <div className="space-y-4">
-
-              <input
-                type="text"
-                value={editData.workout}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    workout: e.target.value,
-                  })
-                }
-                placeholder="Workout"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3"
-              />
-
-              <input
-                type="number"
-                value={editData.duration}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    duration: e.target.value,
-                  })
-                }
-                placeholder="Duration"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3"
-              />
-
-              <input
-                type="number"
-                value={editData.calories}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    calories: e.target.value,
-                  })
-                }
-                placeholder="Calories"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3"
-              />
-
-              <input
-                type="date"
-                value={editData.date}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    date: e.target.value,
-                  })
-                }
-                className="w-full border border-gray-300 rounded-xl px-4 py-3"
-              />
-
-              <button
-                onClick={handleUpdate}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl transition"
-              >
-                Update Workout
-              </button>
-
-            </div>
-
-          </div>
-
-        )}
-
         {/* WATER SECTION */}
 
         <div className="mt-10 bg-white rounded-3xl shadow-lg p-6">
 
-          <div className="flex gap-4">
+          <h3 className="text-lg font-bold mb-4">Water Intake</h3>
+
+          <div className="flex gap-4 mb-6">
 
             <input
               type="number"
@@ -722,7 +515,7 @@ export default function App() {
 
             <button
               onClick={handleWaterSubmit}
-              className="bg-black text-white px-6 py-3 rounded-2xl"
+              className="bg-black text-white px-6 py-3 rounded-2xl hover:bg-gray-800"
             >
               Save Water
             </button>
@@ -732,6 +525,53 @@ export default function App() {
                 autoClose={3000}
                 theme="colored"
             />
+
+          </div>
+
+          {/* WATER LIST */}
+
+          <div className="border-t pt-4">
+
+            <h4 className="font-semibold mb-3">Recent Water Intake</h4>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+
+              {waterList.length > 0 ? (
+
+                waterList.map((record) => (
+
+                  <div key={record.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl hover:bg-gray-100">
+
+                    <div className="flex-1">
+
+                      <p className="font-semibold">{record.amount}L</p>
+
+                      <p className="text-sm text-gray-500">{new Date(record.date).toLocaleDateString()}</p>
+
+                    </div>
+
+                    <div className="flex gap-2">
+
+                      <button
+                        onClick={() => handleDeleteWater(record.id)}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                ))
+
+              ) : (
+
+                <p className="text-gray-500 text-center py-4">No water records yet</p>
+
+              )}
+
+            </div>
 
           </div>
 
